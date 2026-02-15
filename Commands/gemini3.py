@@ -20,7 +20,7 @@ GENERATION_CONFIG = {
     "temperature": 0.3,
     "top_p": 0.95,
     "system_instruction": [
-        types.Part.from_text(text="Please provide a short, concise response with enough detail. Do not ask the user follow up questions, because you are intended to provide a single response with no history and are not expected any follow up prompts. Answer should be at most 990 characters.")
+        types.Part.from_text(text="Please provide a short, concise response with enough detail. Do not ask the user follow up questions, because you are intended to provide a single response with no history and are not expected any follow up prompts. Answer should be at most 600 characters.")
     ]
 }
 
@@ -329,12 +329,14 @@ def reply_with_grounded_gemini(self, message):
         if not valid_urls and not wikipedia_snippet:
             self.send_privmsg(cmd.channel, "No results found for the query.")
             return
-        grounding_text = (
-            f"Today is {utc_date_time}.\n\n"
-            "Use what's relevant of this text to inform your response to the prompt above (Don't mention that I provided you with a text/document/article/context for your response under any circumstance. Answer as if you know this information):\n"
-            f"{wikipedia_snippet or ''}\n"
-            f"{grounding_data.get('body_content', '')}"
-        )
+            
+        grounding_text = f"""Today is {utc_date_time}.
+        Use the provided information to help answer the prompt. 
+        If you use this information, do so seamlessly as if it were your own knowledge. 
+        Do not mention that you have been provided with any text or information and do not allude to it in any way.
+        Just interpret the user's request and answer directly:
+        {wikipedia_snippet or ''}
+        {grounding_data.get('body_content', '')}"""
 
         is_grounded = bool(valid_urls) or bool(wikipedia_snippet)
 
