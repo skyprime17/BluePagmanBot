@@ -74,8 +74,8 @@ def get_google_lucky(query):
 
     try:
         res = proxy_request("GET", url, headers=headers)
-        if not res:
-            print("get_google_lucky: No response")
+        if res is None:
+            print("get_google_lucky: No response object")
             return None, "No response"
 
         if res.status_code not in [200, 301, 302]:
@@ -317,21 +317,26 @@ def reply_with_grounded_gemini(self, message):
         error_code = grounding_data.get('error_code')
         valid_urls = grounding_data['valid_urls']
 
-        if not valid_urls and error_code:
-            self.send_privmsg(cmd.channel, f"Error: Request failed with code {error_code}.")
+        wikipedia_snippet = grounding_data.get('wikipedia_snippet')
+
+        if not valid_urls and not wikipedia_snippet and error_code:
+            if error_code == "No response":
+                self.send_privmsg(cmd.channel, f"{cmd.username}, search failed, try again later.")
+            else:
+                self.send_privmsg(cmd.channel, f"Error: Request failed with code {error_code}.")
             return
 
-        if not valid_urls:
+        if not valid_urls and not wikipedia_snippet:
             self.send_privmsg(cmd.channel, "No results found for the query.")
             return
         grounding_text = (
             f"Today is {utc_date_time}.\n\n"
             "Use what's relevant of this text to inform your response to the prompt above (Don't mention that I provided you with a text/document/article/context for your response under any circumstance. Answer as if you know this information):\n"
-            f"{grounding_data['wikipedia_snippet']}\n"
-            f"{grounding_data['body_content']}"
+            f"{wikipedia_snippet or ''}\n"
+            f"{grounding_data.get('body_content', '')}"
         )
 
-        is_grounded = bool(valid_urls)
+        is_grounded = bool(valid_urls) or bool(wikipedia_snippet)
 
         result = gemini_generate({
             "prompt": prompt,
